@@ -1,0 +1,53 @@
+name: "Deploy VRCSTT"
+
+on:
+  pull_request:
+    types:
+      - closed
+  push:
+    branches:
+      - main
+      - workflows
+
+env:
+  PROJECT_PATH: Mod.csproj
+  
+  
+jobs: 
+  build: 
+    runs-on: windows-latest
+    if: ${{ (github.event.pull_request.merged == true) && !(contains(github.event.pull_request.labels.*.name, 'minor')) }}
+    steps: 
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-dotnet@v4
+        with: 
+          dotnet-version: 6.0.x
+      - run: dotnet restore ${{ env.PROJECT_PATH }}
+      - run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
+      - run: dotnet publish ${{ env.PROJECT_PATH }} -c Release --self-contained -r win-x64 -p:PublishSingleFile=true --no-build -o Program
+      - uses: actions/upload-artifact@v4
+        with: 
+          name: main_mod
+          path: Program/Mod.dll
+   
+  deploy:
+    runs-on: windows-latest
+    needs: [build]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: main_mod
+    
+      - uses: actions/create-release@v1
+        id: create_release
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with: 
+          tag_name: v${{ github.run_number }}
+          
+      - uses: csexton/release-asset-action@v3
+        with: 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: Mod.dll
+          release-url: ${{ steps.create_release.outputs.upload_url }}
