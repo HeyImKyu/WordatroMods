@@ -1,4 +1,4 @@
-name: "Deploy VRCSTT"
+name: "Deploy MainMod"
 
 on:
   pull_request:
@@ -16,7 +16,6 @@ env:
 jobs: 
   build: 
     runs-on: windows-latest
-    if: ${{ (github.event.pull_request.merged == true) && !(contains(github.event.pull_request.labels.*.name, 'minor')) }}
     steps: 
       - uses: actions/checkout@v4
       
